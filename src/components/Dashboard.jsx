@@ -1,9 +1,7 @@
-// ✅ STEP 7: src/components/Dashboard.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { db, storage, auth } from '../firebase';
 import {
   collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, where,
-  sum
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { signOut } from 'firebase/auth';
@@ -11,13 +9,18 @@ import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
 import {
-  Button, TextField, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Paper, Typography, Box, Dialog, DialogContent,
-  DialogTitle, FormControlLabel, Checkbox, FormGroup, RadioGroup, Radio
+  Box, Typography, Button, TextField, Paper,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Dialog, DialogContent, DialogTitle,
+  FormControlLabel, Checkbox, FormGroup, RadioGroup, Radio, TablePagination,
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 function Dashboard() {
   const formRef = useRef(null);
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+
   const [date, setDate] = useState('');
   const [item, setItem] = useState('');
   const [price, setPrice] = useState('');
@@ -32,7 +35,8 @@ function Dashboard() {
   const [showForm, setShowForm] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const navigate = useNavigate();
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((user) => {
@@ -47,20 +51,22 @@ function Dashboard() {
           setExpenses(data);
         });
         return () => unsubSnapshot();
+      } else {
+        navigate('/login');
       }
     });
     return () => unsub();
-  }, []);
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const currentUser = auth.currentUser;
     if (!currentUser || !image || !date || !item || !price) {
-      return setMessage('Please fill all fields and make sure user is logged in');
+      return setMessage(t('fill_all_fields'));
     }
 
     const parsedPrice = parseFloat(price);
-    if (isNaN(parsedPrice)) return setMessage('Invalid price');
+    if (isNaN(parsedPrice)) return setMessage(t('invalid_price'));
 
     try {
       const imageRef = ref(storage, `receipts/${uuidv4()}`);
@@ -80,14 +86,13 @@ function Dashboard() {
         createdAt: serverTimestamp()
       });
 
-      setMessage('Saved');
+      setMessage(t('saved'));
       setDate(''); setItem(''); setPrice('');
       setImage(null); setIncome(true);
-      setIncomeSource('regular');
-      setOutto(true); setOutSource('equipment');
+      setIncomeSource('regular'); setOutto(true); setOutSource('equipment');
       setShowForm(false);
     } catch (err) {
-      setMessage('Error: ' + err.message);
+      setMessage(t('error') + err.message);
     }
   };
 
@@ -103,10 +108,21 @@ function Dashboard() {
     }, 100);
   };
 
-  const filtered = expenses.filter(e => {
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const filtered = (expenses || []).filter(e => {
     if (!startDate || !endDate) return true;
     return e.date >= startDate && e.date <= endDate;
   });
+
+  const paginatedData = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const exportExcel = () => {
     const sheet = XLSX.utils.json_to_sheet(filtered);
@@ -127,71 +143,77 @@ function Dashboard() {
 
   return (
     <Box sx={{ p: 2, maxWidth: 700, mx: 'auto' }}>
-      <Typography variant="h5" gutterBottom>Expense Tracker</Typography>
+      <Typography variant="h5" gutterBottom>{t('title')}</Typography>
 
       <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-        <TextField type="date" label="Start Date" value={startDate} onChange={e => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }} />
-        <TextField type="date" label="End Date" value={endDate} onChange={e => setEndDate(e.target.value)} InputLabelProps={{ shrink: true }} />
-        <Button variant="outlined" onClick={exportExcel}>Export Excel</Button>
-        <Button variant="contained" onClick={handleToggleForm}>{showForm ? 'ปิดฟอร์ม' : '+ เพิ่มรายการ'}</Button>
+        <TextField type="date" label={t('start_date')} value={startDate} onChange={e => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }} />
+        <TextField type="date" label={t('end_date')} value={endDate} onChange={e => setEndDate(e.target.value)} InputLabelProps={{ shrink: true }} />
+        <Button variant="outlined" onClick={exportExcel}>{t('export_excel')}</Button>
+        <Button variant="contained" onClick={handleToggleForm}>{showForm ? t('close_form') : t('add_entry')}</Button>
       </Box>
 
       {/* Summary Section */}
-      <Box sx={{ mb: 3, p: 2, background: '#f5f5f5', borderRadius: 2 }}>
-        <Typography variant="h6">สรุปข้อมูล</Typography>
-        <Typography>💰 รายรับรวม: ฿{totalIncome.toFixed(2)} (รายรับ: ฿{regularIncome.toFixed(2)}, คืนหนี้: ฿{refundIncome.toFixed(2)}, ยืมคนอื่น: ฿{borrowedIncome.toFixed(2)})</Typography>
-        <Typography>💸 รายจ่ายรวม: ฿{totalExpense.toFixed(2)} (ซื้อของ: ฿{equipmentExpense.toFixed(2)}, ซื้ออาหาร: ฿{payfoodOuter.toFixed(2)}, ให้ยืม: ฿{lendExpense.toFixed(2)}, คืนหนี้: ฿{repayExpense.toFixed(2)})</Typography>
-        <Typography>💼 คงเหลือสุทธิ: ฿{(totalIncome - totalExpense).toFixed(2)}</Typography>
+      <Box
+  sx={(theme) => ({
+    mb: 3,
+    p: 2,
+    borderRadius: 2,
+    backgroundColor: theme.palette.mode === 'dark'
+      ? theme.palette.grey[900]
+      : theme.palette.grey[100],
+  })}
+>
+        <Typography variant="h6">{t('summary')}</Typography>
+        <Typography>💰 {t('total_income')}: ฿{totalIncome.toFixed(2)} ({t('regular')}: ฿{regularIncome.toFixed(2)}, {t('refund')}: ฿{refundIncome.toFixed(2)}, {t('borrowed')}: ฿{borrowedIncome.toFixed(2)})</Typography>
+        <Typography>💸 {t('total_expense')}: ฿{totalExpense.toFixed(2)} ({t('equipment')}: ฿{equipmentExpense.toFixed(2)}, {t('food')}: ฿{payfoodOuter.toFixed(2)}, {t('lend')}: ฿{lendExpense.toFixed(2)}, {t('repay')}: ฿{repayExpense.toFixed(2)})</Typography>
+        <Typography>💼 {t('net_balance')}: ฿{(totalIncome - totalExpense).toFixed(2)}</Typography>
       </Box>
 
       {showForm && (
         <Box ref={formRef} component="form" onSubmit={handleSubmit} sx={{ display: 'flex', gap: 2, flexDirection: 'column', mb: 2 }}>
-          <TextField type="date" value={date} onChange={(e) => setDate(e.target.value)} label="Date" InputLabelProps={{ shrink: true }} required />
-          <TextField value={item} onChange={(e) => setItem(e.target.value)} label="Description" required />
-          <TextField type="number" value={price} onChange={(e) => setPrice(e.target.value)} label="Price" required />
+          <TextField type="date" value={date} onChange={(e) => setDate(e.target.value)} label={t('date')} InputLabelProps={{ shrink: true }} required />
+          <TextField value={item} onChange={(e) => setItem(e.target.value)} label={t('description')} required />
+          <TextField type="number" value={price} onChange={(e) => setPrice(e.target.value)} label={t('price')} required />
           <input type="file" accept="image/*" onChange={(e) => setImage(e.target.files[0])} required />
-
           <FormGroup>
-            <FormControlLabel control={<Checkbox checked={income} onChange={(e) => setIncome(e.target.checked)} />} label="เงินเข้า" />
+            <FormControlLabel control={<Checkbox checked={income} onChange={(e) => setIncome(e.target.checked)} />} label={t('income')} />
           </FormGroup>
-
           {income ? (
             <RadioGroup row value={incomeSource} onChange={(e) => setIncomeSource(e.target.value)}>
-              <FormControlLabel value="regular" control={<Radio />} label="รายรับ" />
-              <FormControlLabel value="refund" control={<Radio />} label="คืนเงิน" />
-              <FormControlLabel value="borrowed" control={<Radio />} label="ยืมคนอื่น" />
+              <FormControlLabel value="regular" control={<Radio />} label={t('regular')} />
+              <FormControlLabel value="refund" control={<Radio />} label={t('refund')} />
+              <FormControlLabel value="borrowed" control={<Radio />} label={t('borrowed')} />
             </RadioGroup>
           ) : (
             <RadioGroup row value={outSource} onChange={(e) => {
               setOutSource(e.target.value);
               setOutto(e.target.value === 'equipment');
             }}>
-              <FormControlLabel value="equipment" control={<Radio />} label="ซื้ออุปกรณ์" />
-              <FormControlLabel value="payfood" control={<Radio />} label="ซื้ออาหาร" />
-              <FormControlLabel value="lend" control={<Radio />} label="ให้ยืม" />
-              <FormControlLabel value="repay" control={<Radio />} label="คืนหนี้" />
+              <FormControlLabel value="equipment" control={<Radio />} label={t('equipment')} />
+              <FormControlLabel value="payfood" control={<Radio />} label={t('food')} />
+              <FormControlLabel value="lend" control={<Radio />} label={t('lend')} />
+              <FormControlLabel value="repay" control={<Radio />} label={t('repay')} />
             </RadioGroup>
           )}
-
-          <Button type="submit" variant="contained">Save</Button>
-          <Button variant="outlined" onClick={handleLogout}>Logout</Button>
+          <Button type="submit" variant="contained">{t('save')}</Button>
+          <Button variant="outlined" onClick={handleLogout}>{t('logout')}</Button>
         </Box>
       )}
 
       {/* Table */}
-      <Typography variant="h6">รายการทั้งหมด</Typography>
-      <TableContainer component={Paper}>
+      <Typography variant="h6">{t('all_entries')}</Typography>
+      <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Date</TableCell>
-              <TableCell>Item</TableCell>
-              <TableCell>Price</TableCell>
-              <TableCell>Receipt</TableCell>
+              <TableCell>{t('date')}</TableCell>
+              <TableCell>{t('description')}</TableCell>
+              <TableCell>{t('price')}</TableCell>
+              <TableCell>{t('receipt')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filtered.map(exp => (
+            {paginatedData.length > 0 ? paginatedData.map(exp => (
               <TableRow key={exp.id}>
                 <TableCell>{exp.date}</TableCell>
                 <TableCell>{exp.item}</TableCell>
@@ -205,14 +227,28 @@ function Dashboard() {
                   />
                 </TableCell>
               </TableRow>
-            ))}
+            )) : (
+              <TableRow>
+                <TableCell colSpan={4} align="center">{t('no_data')}</TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
+        <TablePagination
+          labelRowsPerPage={t('rows_per_page')}
+          rowsPerPageOptions={[10, 20, 50, 100]}
+          component="div"
+          count={filtered.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
       </TableContainer>
 
       {/* Preview */}
       <Dialog open={!!previewImg} onClose={() => setPreviewImg(null)}>
-        <DialogTitle>Receipt Preview</DialogTitle>
+        <DialogTitle>{t('preview')}</DialogTitle>
         <DialogContent>
           <img src={previewImg} alt="preview" style={{ width: '100%', maxWidth: 400 }} />
         </DialogContent>
