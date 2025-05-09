@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db, storage, auth } from '../firebase';
 import {
-  collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, where
+  collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, where,
+  sum
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { signOut } from 'firebase/auth';
@@ -122,6 +123,7 @@ function Dashboard() {
   const regularIncome = filtered.filter(e => e.incomeSource === 'regular').reduce((sum, e) => sum + e.price, 0);
   const refundIncome = filtered.filter(e => e.incomeSource === 'refund').reduce((sum, e) => sum + e.price, 0);
   const borrowedIncome = filtered.filter(e => e.incomeSource === 'borrowed').reduce((sum, e) => sum + e.price, 0);
+  const payfoodOuter = filtered.filter(e => e.outSource === 'payfood').reduce((sum, e) => sum + e.price, 0);
 
   return (
     <Box sx={{ p: 2, maxWidth: 700, mx: 'auto' }}>
@@ -138,7 +140,7 @@ function Dashboard() {
       <Box sx={{ mb: 3, p: 2, background: '#f5f5f5', borderRadius: 2 }}>
         <Typography variant="h6">สรุปข้อมูล</Typography>
         <Typography>💰 รายรับรวม: ฿{totalIncome.toFixed(2)} (รายรับ: ฿{regularIncome.toFixed(2)}, คืนหนี้: ฿{refundIncome.toFixed(2)}, ยืมคนอื่น: ฿{borrowedIncome.toFixed(2)})</Typography>
-        <Typography>💸 รายจ่ายรวม: ฿{totalExpense.toFixed(2)} (ซื้อของ: ฿{equipmentExpense.toFixed(2)}, ให้ยืม: ฿{lendExpense.toFixed(2)}, คืนหนี้: ฿{repayExpense.toFixed(2)})</Typography>
+        <Typography>💸 รายจ่ายรวม: ฿{totalExpense.toFixed(2)} (ซื้อของ: ฿{equipmentExpense.toFixed(2)}, ซื้ออาหาร: ฿{payfoodOuter.toFixed(2)}, ให้ยืม: ฿{lendExpense.toFixed(2)}, คืนหนี้: ฿{repayExpense.toFixed(2)})</Typography>
         <Typography>💼 คงเหลือสุทธิ: ฿{(totalIncome - totalExpense).toFixed(2)}</Typography>
       </Box>
 
@@ -165,6 +167,7 @@ function Dashboard() {
               setOutto(e.target.value === 'equipment');
             }}>
               <FormControlLabel value="equipment" control={<Radio />} label="ซื้ออุปกรณ์" />
+              <FormControlLabel value="payfood" control={<Radio />} label="ซื้ออาหาร" />
               <FormControlLabel value="lend" control={<Radio />} label="ให้ยืม" />
               <FormControlLabel value="repay" control={<Radio />} label="คืนหนี้" />
             </RadioGroup>
