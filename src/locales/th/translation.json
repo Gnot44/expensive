@@ -33,5 +33,25 @@
   "save": "บันทึก",
   "close_form": "ปิดฟอร์ม",
   "choose file": "เลือกไฟล์",
-  "loading": "กำลังโหลด..."
+  "loading": "กำลังโหลด...",
+    "app_name": "ระบบของฉัน",
+  "dashboard": "แดชบอร์ด",
+  "ot_tracker": "บันทึกโอที",
+  "monthly_salary": "เงินเดือนรายเดือน (บาท)",
+  "calculated_rate": "อัตราคำนวณแล้ว",
+  "baht_per_hour": "บาท/ชั่วโมง",
+  "reset": "ล้างตัวกรอง",
+"ot_summary": "สรุปรายการ OT",
+"filter_by_date": "กรองตามวันที่",
+ "is_holiday": "เป็นวันหยุดหรือไม่?",
+  "holiday": "วันหยุด",
+  "working_day": "วันทำงานปกติ",
+  "total_hours": "รวมชั่วโมง",
+  "total": "รวมทั้งหมด",
+  "hide_form": "ซ่อนฟอร์ม",
+  "show_form": "แสดงฟอร์ม",
+  "tot": "รวมชั่วโมง OT",
+  "start_time": "เวลาเริ่ม",
+  "end_time": "เวลาสิ้นสุด"
+
 }

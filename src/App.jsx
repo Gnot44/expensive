@@ -13,6 +13,8 @@ import DarkModeIcon from '@mui/icons-material/DarkMode';
 import { ToggleButtonGroup, ToggleButton } from '@mui/material';
 import TranslateIcon from '@mui/icons-material/Translate';
 import { CircularProgress, Typography } from '@mui/material';
+import OTCalculator from './components/OTCalculator';
+import MainLayout from './components/MainLayout'; // 👈 เพิ่มเข้ามา
 
 function App() {
   const [user, setUser] = useState(null);
@@ -74,16 +76,25 @@ function App() {
       </Box>
 
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route
-          path="/login"
-          element={user ? <Navigate to="/dashboard" /> : <Login />}
-        />
-        <Route
-          path="/dashboard"
-          element={user ? <Dashboard /> : <Navigate to="/login" state={{ from: location }} replace />}
-        />
-      </Routes>
+  {/* หน้า login ไม่แสดง navbar */}
+  <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
+
+  {/* Layout สำหรับผู้ที่ login แล้วเท่านั้น */}
+  {user && (
+    <Route element={<MainLayout mode={mode} setMode={setMode} />}>
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/ot" element={<OTCalculator />} />
+    </Route>
+  )}
+
+  {/* redirect กรณีไม่ login */}
+  {!user && (
+    <Route path="*" element={<Navigate to="/login" />} />
+  )}
+
+  {/* เส้นทางเริ่มต้น */}
+  <Route path="/" element={<Navigate to="/dashboard" />} />
+</Routes>
     </ThemeProvider>
   );
 }

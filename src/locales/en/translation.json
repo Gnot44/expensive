@@ -31,7 +31,23 @@
   "rows_per_page": "Rows per page",
   "save": "SAVE",
   "close_form": "CLOSE_FORM",
-  "loading": "Loading..."
+  "loading": "Loading...",
+  "app_name": "My App",
+  "dashboard": "Dashboard",
+  "ot_tracker": "OT Tracker",
+  "monthly_salary": "Monthly Salary (Baht)",
+  "calculated_rate": "Calculated Rate",
+  "baht_per_hour": "Baht/hour",
+   "filter_by_date": "Filter by Date",
+  "is_holiday": "Is holiday?",
+  "holiday": "Holiday",
+  "working_day": "Working day",
+  "total_hours": "Total Hours",
+  "total": "Total",
+  "hide_form": "Hide Form",
+  "show_form": "Show Form",
+  "start_time": "Start time",
+  "end_time": "End time"
 }
 
 
